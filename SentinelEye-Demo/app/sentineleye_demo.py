@@ -1032,10 +1032,6 @@ elif page == "Live Detection":
     # VIDEO
     # --------------------------------------------------------
 
-    # --------------------------------------------------------
-    # VIDEO
-    # --------------------------------------------------------
-
     else:
 
         uploaded = st.file_uploader(
@@ -1060,62 +1056,70 @@ elif page == "Live Detection":
                 key="video_max_frames",
             )
 
-            # Avoid creating one incident for every frame
-            # of the same continuous event.
             incident_cooldown = 30
 
-            suffix = (
-                Path(uploaded.name).suffix
-                or ".mp4"
-            )
+            suffix = Path(uploaded.name).suffix or ".mp4"
 
             with tempfile.NamedTemporaryFile(
                 suffix=suffix,
                 delete=False,
             ) as temp:
+                temp.write(uploaded.getbuffer())
+                input_video_path = temp.name
 
-                temp.write(
-                    uploaded.getbuffer()
-                )
-
-                video_path = temp.name
-
-            cap = cv2.VideoCapture(
-                video_path
-            )
+            cap = cv2.VideoCapture(input_video_path)
 
             if not cap.isOpened():
-
-                st.error(
-                    "Unable to open this video."
-                )
-
+                st.error("Unable to open this video.")
             else:
 
                 total_frames = int(
-                    cap.get(
-                        cv2.CAP_PROP_FRAME_COUNT
-                    )
+                    cap.get(cv2.CAP_PROP_FRAME_COUNT)
                 )
 
-                fps = (
-                    cap.get(
-                        cv2.CAP_PROP_FPS
-                    )
-                    or 25.0
+                fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+                frame_width = int(
+                    cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+                )
+                frame_height = int(
+                    cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
                 )
 
-                # Live UI placeholders
-                image_slot = st.empty()
+                if frame_width <= 0 or frame_height <= 0:
+                    frame_width = 1280
+                    frame_height = 720
+
+                # Create an annotated output video.
+                output_file = tempfile.NamedTemporaryFile(
+                    suffix=".mp4",
+                    delete=False,
+                )
+                output_video_path = output_file.name
+                output_file.close()
+
+                fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+
+                writer = cv2.VideoWriter(
+                    output_video_path,
+                    fourcc,
+                    fps,
+                    (frame_width, frame_height),
+                )
+
+                if not writer.isOpened():
+                    cap.release()
+                    st.error(
+                        "Unable to create the processed video."
+                    )
+                    st.stop()
+
+                preview_slot = st.empty()
                 status_slot = st.empty()
                 progress_slot = st.progress(0.0)
 
                 processed = 0
-                last_incident_frame = (
-                    -incident_cooldown
-                )
+                last_incident_frame = -incident_cooldown
 
-                # Keep strongest detection in the video
                 best_confidence = 0.0
                 best_frame_image = None
                 best_fire_count = 0
@@ -1135,15 +1139,9 @@ elif page == "Live Detection":
                     if not ok:
                         break
 
-                    # -------------------------------
-                    # YOLO INFERENCE
-                    # -------------------------------
-
-                    result, inference_ms = (
-                        run_detection(
-                            frame,
-                            confidence,
-                        )
+                    result, inference_ms = run_detection(
+                        frame,
+                        confidence,
                     )
 
                     (
@@ -1156,12 +1154,13 @@ elif page == "Live Detection":
                         result,
                     )
 
+                    writer.write(annotated)
+
                     annotated_rgb = cv2.cvtColor(
                         annotated,
                         cv2.COLOR_BGR2RGB,
                     )
 
-                    # Highest confidence in current frame
                     current_confidence = (
                         max(
                             d["confidence"]
@@ -1171,18 +1170,13 @@ elif page == "Live Detection":
                         else 0.0
                     )
 
-                    # -------------------------------
-                    # LIVE FRAME DISPLAY
-                    # -------------------------------
-
-                    image_slot.image(
+                    # Local preview. On hosted Streamlit this may
+                    # update less frequently than local execution,
+                    # but the complete annotated video is preserved.
+                    preview_slot.image(
                         annotated_rgb,
                         width="stretch",
                     )
-
-                    # -------------------------------
-                    # LIVE STATUS
-                    # -------------------------------
 
                     status, _ = get_status(
                         fire_count,
@@ -1201,85 +1195,44 @@ elif page == "Live Detection":
 
 Frame: **{processed + 1} / {denominator}**  
 Video time: **{video_time:.1f}s**  
-Fire: **{fire_count}** ·
-Smoke: **{smoke_count}** ·
+Fire: **{fire_count}** · Smoke: **{smoke_count}**  
 Confidence: **{current_confidence:.2f}** ·
 Inference: **{inference_ms:.0f} ms**
 """
                     )
 
-                    # -------------------------------
-                    # SAVE STRONGEST DETECTION
-                    # -------------------------------
+                    # Keep strongest detection for Overview.
+                    if current_confidence > best_confidence:
+                        best_confidence = current_confidence
+                        best_frame_image = annotated_rgb.copy()
+                        best_fire_count = fire_count
+                        best_smoke_count = smoke_count
+                        best_inference_ms = inference_ms
+                        best_frame_number = processed + 1
 
-                    if (
-                        current_confidence
-                        > best_confidence
-                    ):
-
-                        best_confidence = (
-                            current_confidence
-                        )
-
-                        best_frame_image = (
-                            annotated_rgb.copy()
-                        )
-
-                        best_fire_count = (
-                            fire_count
-                        )
-
-                        best_smoke_count = (
-                            smoke_count
-                        )
-
-                        best_inference_ms = (
-                            inference_ms
-                        )
-
-                        best_frame_number = (
-                            processed + 1
-                        )
-
-                    # -------------------------------
-                    # RECENT INCIDENT LOG
-                    # -------------------------------
-
+                    # Log an incident, but not every frame.
                     if (
                         fire_count > 0
                         or smoke_count > 0
+                    ) and (
+                        processed - last_incident_frame
+                        >= incident_cooldown
                     ):
 
-                        if (
-                            processed
-                            - last_incident_frame
-                            >= incident_cooldown
-                        ):
+                        add_incident(
+                            f"{uploaded.name} "
+                            f"[frame {processed + 1}]",
+                            fire_count,
+                            smoke_count,
+                            detections,
+                            inference_ms,
+                        )
 
-                            add_incident(
-                                (
-                                    f"{uploaded.name} "
-                                    f"[frame "
-                                    f"{processed + 1}]"
-                                ),
-                                fire_count,
-                                smoke_count,
-                                detections,
-                                inference_ms,
-                            )
-
-                            last_incident_frame = (
-                                processed
-                            )
-
-                    # -------------------------------
-                    # PROGRESS
-                    # -------------------------------
+                        last_incident_frame = processed
 
                     processed += 1
 
                     if denominator > 0:
-
                         progress_slot.progress(
                             min(
                                 1.0,
@@ -1288,32 +1241,67 @@ Inference: **{inference_ms:.0f} ms**
                         )
 
                 cap.release()
+                writer.release()
 
-                # -------------------------------
-                # KEEP BEST RESULT FOR OVERVIEW
-                # -------------------------------
-
+                # Save the strongest processed frame into
+                # Overview -> Current Monitoring.
                 if best_frame_image is not None:
-
                     st.session_state.last_result = {
                         "image": best_frame_image,
                         "fire": best_fire_count,
                         "smoke": best_smoke_count,
                         "confidence": best_confidence,
-                        "inference_ms": (
-                            best_inference_ms
-                        ),
+                        "inference_ms": best_inference_ms,
                         "source": (
                             f"{uploaded.name} "
-                            f"· best frame "
-                            f"{best_frame_number}"
+                            f"· best frame {best_frame_number}"
                         ),
                     }
+                else:
+                    # Even when there are no detections, keep a
+                    # valid latest frame for the Overview page.
+                    try:
+                        cap_preview = cv2.VideoCapture(
+                            output_video_path
+                        )
+                        ok_preview, preview_frame = (
+                            cap_preview.read()
+                        )
+                        cap_preview.release()
+
+                        if ok_preview:
+                            preview_rgb = cv2.cvtColor(
+                                preview_frame,
+                                cv2.COLOR_BGR2RGB,
+                            )
+
+                            st.session_state.last_result = {
+                                "image": preview_rgb,
+                                "fire": 0,
+                                "smoke": 0,
+                                "confidence": 0.0,
+                                "inference_ms": 0.0,
+                                "source": uploaded.name,
+                            }
+                    except Exception:
+                        pass
+
+                st.markdown(
+                    '<div class="section-title">'
+                    'Processed Video'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+
+                st.video(
+                    output_video_path,
+                )
 
                 st.success(
                     f"Processed {processed} frames "
                     f"from {uploaded.name}."
                 )
+
 # ============================================================
 # ALERTS
 # ============================================================
