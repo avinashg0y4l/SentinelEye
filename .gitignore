@@ -45,3 +45,13 @@ models/baseline_v1_best.pth
 SentinelEye-Demo/demo/test.jpg
 SentinelEye-Demo/demo/FramesV1_3900.jpg
 SentinelEye-Demo/app/sentineleye_demo_backup.py
+
+# Local video diagnostics
+SentinelEye-Demo/app/demo.mp4
+SentinelEye-Demo/app/diagnose_video.py
+SentinelEye-Demo/app/diagnose_video_resolution.py
+
+# Local experiment artifacts
+results/
+yolo11n.pt
+yolo26n.pt
