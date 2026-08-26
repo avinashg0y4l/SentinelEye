@@ -1,0 +1,377 @@
+/* ============================================================
+   SentinelEye Operations
+   Final UI stylesheet
+   ============================================================ */
+
+.stApp {
+    background: #f5f7fa;
+    color: #1f2937;
+}
+
+.block-container {
+    max-width: 1500px;
+    width: 100%;
+    margin: 0 auto;
+    padding-top: 0.65rem;
+    padding-bottom: 1.6rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+/* ============================================================
+   STREAMLIT TOP CHROME
+   ============================================================ */
+
+header[data-testid="stHeader"] {
+    display: none !important;
+}
+
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"],
+.stAppDeployButton {
+    display: none !important;
+}
+
+/* ============================================================
+   MAIN NAVIGATION
+   ============================================================ */
+
+.nav-title {
+    color: #17324d;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-top: 0.2rem;
+    margin-bottom: 0.2rem;
+}
+
+.nav-label {
+    color: #6f7b89;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.stButton > button {
+    border-radius: 5px;
+    border: 1px solid #cbd3dc;
+    font-weight: 600;
+    min-height: 2.55rem;
+    color: #17324d;
+    font-size: 0.88rem !important;
+    white-space: nowrap;
+}
+
+.stButton > button:hover {
+    border-color: #9ba8b6;
+}
+
+/* ============================================================
+   DETECTION SETTINGS
+   ============================================================ */
+
+.settings-shell {
+    background: #ffffff;
+    border: 1px solid #d8dee6;
+    border-radius: 7px;
+    padding: 0.6rem 0.9rem;
+    margin-top: 0.55rem;
+}
+
+.settings-label {
+    color: #6f7b89;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.1rem;
+}
+
+.sidebar-info {
+    color: #344454;
+    font-size: 0.90rem;
+    line-height: 1.65;
+}
+
+.settings-shell .stSlider {
+    padding-top: 0.15rem;
+}
+
+.settings-shell [data-testid="stSlider"] {
+    padding-bottom: 0;
+}
+
+/* ============================================================
+   MAIN HEADER
+   ============================================================ */
+
+.page-header {
+    background: #ffffff;
+    border: 1px solid #d8dee6;
+    border-radius: 7px;
+    padding: 0.95rem 1.15rem;
+    min-height: 78px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.page-header-title {
+    color: #17324d;
+    font-size: 1.65rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.page-header-subtitle {
+    color: #6b7280;
+    font-size: 0.92rem;
+    margin-top: 0.24rem;
+}
+
+.status-box {
+    background: #ffffff;
+    border: 1px solid #d8dee6;
+    border-radius: 7px;
+    min-height: 78px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #19703b;
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+
+/* ============================================================
+   SECTION HEADINGS
+   ============================================================ */
+
+.section-title {
+    color: #17324d;
+    font-size: 1.12rem;
+    font-weight: 700;
+    margin-top: 0.9rem;
+    margin-bottom: 0.65rem;
+}
+
+.section-note {
+    color: #6b7280;
+    font-size: 0.88rem;
+    margin-top: -0.15rem;
+    margin-bottom: 0.8rem;
+}
+
+/* ============================================================
+   KPI CARDS
+   ============================================================ */
+
+.kpi {
+    background: #ffffff;
+    border: 1px solid #d8dee6;
+    border-radius: 7px;
+    padding: 0.9rem 0.95rem;
+    min-height: 94px;
+}
+
+.kpi-label {
+    color: #6f7b89;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+}
+
+.kpi-value {
+    color: #17324d;
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.15;
+    margin-top: 0.3rem;
+}
+
+.kpi-danger {
+    color: #b42318;
+}
+
+.kpi-warning {
+    color: #a15c00;
+}
+
+.kpi-success {
+    color: #19703b;
+}
+
+/* ============================================================
+   PANELS
+   ============================================================ */
+
+.panel {
+    background: #ffffff;
+    border: 1px solid #d8dee6;
+    border-radius: 7px;
+    padding: 1rem;
+    margin-bottom: 0.9rem;
+}
+
+.panel-title {
+    color: #17324d;
+    font-size: 1.02rem;
+    font-weight: 700;
+    margin-bottom: 0.48rem;
+}
+
+.muted {
+    color: #6b7280;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+/* ============================================================
+   ALERTS
+   ============================================================ */
+
+.alert-fire,
+.alert-smoke,
+.alert-safe {
+    padding: 0.8rem 0.9rem;
+    border-radius: 4px;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    margin-bottom: 0.65rem;
+}
+
+.alert-fire {
+    border-left: 4px solid #b42318;
+    background: #fff4f2;
+}
+
+.alert-smoke {
+    border-left: 4px solid #a15c00;
+    background: #fff8ec;
+}
+
+.alert-safe {
+    border-left: 4px solid #19703b;
+    background: #f1faf4;
+}
+
+/* ============================================================
+   TABLES
+   ============================================================ */
+
+[data-testid="stDataFrame"] {
+    border: 1px solid #d8dee6;
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+/* ============================================================
+   MEDIA
+   ============================================================ */
+
+[data-testid="stImage"] {
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.footer {
+    border-top: 1px solid #d8dee6;
+    margin-top: 1.35rem;
+    padding-top: 0.65rem;
+    color: #7a8592;
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1100px) {
+    .block-container {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .page-header-title {
+        font-size: 1.4rem;
+    }
+
+    .page-header-subtitle {
+        font-size: 0.86rem;
+    }
+
+    .kpi-value {
+        font-size: 1.55rem;
+    }
+
+    .stButton > button {
+        font-size: 0.80rem !important;
+    }
+}
+
+@media (max-width: 700px) {
+    .block-container {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.45rem;
+    }
+
+    .page-header-title {
+        font-size: 1.25rem;
+    }
+
+    .page-header-subtitle {
+        font-size: 0.82rem;
+    }
+
+    .status-box {
+        min-height: 58px;
+        margin-top: 0.4rem;
+        font-size: 0.78rem;
+    }
+
+    .nav-title {
+        font-size: 1rem;
+    }
+
+    .nav-label {
+        font-size: 0.72rem;
+    }
+
+    .stButton > button {
+        font-size: 0.74rem !important;
+        min-height: 2.4rem !important;
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+
+    .section-title {
+        font-size: 1rem;
+    }
+
+    .kpi {
+        min-height: 82px;
+    }
+
+    .kpi-label {
+        font-size: 0.70rem;
+    }
+
+    .kpi-value {
+        font-size: 1.35rem;
+    }
+
+    .panel-title {
+        font-size: 0.96rem;
+    }
+
+    .muted,
+    .section-note {
+        font-size: 0.82rem;
+    }
+}

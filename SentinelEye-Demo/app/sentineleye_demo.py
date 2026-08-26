@@ -42,199 +42,27 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-
 # ============================================================
-# STYLE
+# LOAD STYLESHEET
 # ============================================================
 
-st.markdown(
-    """
-    <style>
+CSS_PATH = APP_DIR / "style.css"
 
-    /* ---------- PAGE ---------- */
+if not CSS_PATH.exists():
+    st.error(
+        f"Stylesheet not found:\n{CSS_PATH}"
+    )
+    st.stop()
 
-    .stApp {
-        background: #f4f6f8;
-    }
-
-    .block-container {
-        max-width: 1450px;
-        padding-top: 1.2rem;
-        padding-bottom: 2rem;
-    }
-
-    /* ---------- HEADER ---------- */
-
-    .topbar {
-        background: #ffffff;
-        border: 1px solid #d9dee5;
-        border-radius: 6px;
-        padding: 14px 18px;
-        margin-bottom: 14px;
-    }
-
-    .title {
-        font-size: 1.55rem;
-        font-weight: 700;
-        color: #17324d;
-        margin: 0;
-    }
-
-    .subtitle {
-        font-size: 0.82rem;
-        color: #687586;
-        margin-top: 2px;
-    }
-
-    .system-status {
-        text-align: right;
-        color: #19703b;
-        font-weight: 600;
-        font-size: 0.85rem;
-        padding-top: 8px;
-    }
-
-    /* ---------- SECTION ---------- */
-
-    .section-title {
-        color: #17324d;
-        font-size: 1.05rem;
-        font-weight: 700;
-        margin-top: 6px;
-        margin-bottom: 10px;
-    }
-
-    .section-note {
-        color: #6b7280;
-        font-size: 0.78rem;
-        margin-top: -5px;
-        margin-bottom: 12px;
-    }
-
-    /* ---------- KPI ---------- */
-
-    .kpi {
-        background: #ffffff;
-        border: 1px solid #d9dee5;
-        border-radius: 6px;
-        padding: 14px 16px;
-        min-height: 92px;
-    }
-
-    .kpi-label {
-        color: #6b7280;
-        font-size: 0.72rem;
-        text-transform: uppercase;
-        letter-spacing: 0.03em;
-    }
-
-    .kpi-value {
-        color: #17324d;
-        font-size: 1.55rem;
-        font-weight: 700;
-        margin-top: 5px;
-    }
-
-    .kpi-danger {
-        color: #b42318;
-    }
-
-    .kpi-warning {
-        color: #a15c00;
-    }
-
-    .kpi-success {
-        color: #19703b;
-    }
-
-    /* ---------- PANELS ---------- */
-
-    .panel {
-        background: #ffffff;
-        border: 1px solid #d9dee5;
-        border-radius: 6px;
-        padding: 16px;
-        margin-bottom: 14px;
-    }
-
-    .panel-title {
-        color: #17324d;
-        font-size: 0.95rem;
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
-
-    .muted {
-        color: #6b7280;
-        font-size: 0.80rem;
-    }
-
-    /* ---------- ALERTS ---------- */
-
-    .alert-fire {
-        border-left: 4px solid #b42318;
-        background: #fff4f2;
-        padding: 11px 12px;
-        margin-bottom: 8px;
-        border-radius: 4px;
-    }
-
-    .alert-smoke {
-        border-left: 4px solid #a15c00;
-        background: #fff8ec;
-        padding: 11px 12px;
-        margin-bottom: 8px;
-        border-radius: 4px;
-    }
-
-    .alert-safe {
-        border-left: 4px solid #19703b;
-        background: #f1faf4;
-        padding: 11px 12px;
-        margin-bottom: 8px;
-        border-radius: 4px;
-    }
-
-    /* ---------- FOOTER ---------- */
-
-    .footer {
-        border-top: 1px solid #d9dee5;
-        margin-top: 20px;
-        padding-top: 10px;
-        color: #7a8592;
-        font-size: 0.72rem;
-        text-align: center;
-    }
-
-    /* ---------- MOBILE ---------- */
-
-    @media (max-width: 800px) {
-
-        .block-container {
-            padding-left: 0.8rem;
-            padding-right: 0.8rem;
-            padding-top: 0.7rem;
-        }
-
-        .title {
-            font-size: 1.3rem;
-        }
-
-        .system-status {
-            text-align: left;
-            padding-top: 3px;
-        }
-
-        .kpi {
-            min-height: 78px;
-        }
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
+with open(
+    CSS_PATH,
+    "r",
+    encoding="utf-8",
+) as css_file:
+    st.markdown(
+        f"<style>{css_file.read()}</style>",
+        unsafe_allow_html=True,
+    )
 
 # ============================================================
 # SESSION STATE
@@ -245,9 +73,6 @@ if "incidents" not in st.session_state:
 
 if "last_result" not in st.session_state:
     st.session_state.last_result = None
-
-if "last_time" not in st.session_state:
-    st.session_state.last_time = None
 
 
 # ============================================================
@@ -396,15 +221,10 @@ def annotate_image(image_bgr, result):
             cv2.LINE_AA,
         )
 
-        label = (
-            f"{name} "
-            f"{score:.2f}"
-        )
+        label = f"{name} {score:.2f}"
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-
         font_scale = 0.62
-
         thickness = 2
 
         (
@@ -464,26 +284,14 @@ def annotate_image(image_bgr, result):
     )
 
 
-def get_status(
-    fire_count,
-    smoke_count,
-):
+def get_status(fire_count, smoke_count):
     if fire_count > 0:
-        return (
-            "FIRE ALERT",
-            "fire",
-        )
+        return "FIRE ALERT", "fire"
 
     if smoke_count > 0:
-        return (
-            "SMOKE DETECTED",
-            "smoke",
-        )
+        return "SMOKE DETECTED", "smoke"
 
-    return (
-        "NO THREAT",
-        "safe",
-    )
+    return "NO THREAT", "safe"
 
 
 def add_incident(
@@ -533,7 +341,6 @@ def add_incident(
         event,
     )
 
-    # Keep session log manageable.
     st.session_state.incidents = (
         st.session_state.incidents[:50]
     )
@@ -547,9 +354,7 @@ def display_kpi(
     st.markdown(
         f"""
         <div class="kpi">
-            <div class="kpi-label">
-                {label}
-            </div>
+            <div class="kpi-label">{label}</div>
             <div class="kpi-value {css_class}">
                 {value}
             </div>
@@ -562,19 +367,22 @@ def display_kpi(
 # ============================================================
 # HEADER
 # ============================================================
+# ============================================================
+# HEADER
+# ============================================================
 
 header_left, header_right = st.columns(
-    [4, 1]
+    [5, 1]
 )
 
 with header_left:
     st.markdown(
         """
-        <div class="topbar">
-            <div class="title">
+        <div class="page-header">
+            <div class="page-header-title">
                 SentinelEye Operations
             </div>
-            <div class="subtitle">
+            <div class="page-header-subtitle">
                 UAV-based fire and smoke monitoring
             </div>
         </div>
@@ -585,40 +393,72 @@ with header_left:
 with header_right:
     st.markdown(
         """
-        <div class="topbar">
-            <div class="system-status">
-                ● SYSTEM ONLINE
-            </div>
+        <div class="status-box">
+            ● SYSTEM ONLINE
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-
 # ============================================================
-# SIDEBAR
+# MAIN NAVIGATION
 # ============================================================
 
-with st.sidebar:
+if "page" not in st.session_state:
+    st.session_state.page = "Overview"
 
+st.markdown(
+    """
+    <div class="nav-title">SentinelEye</div>
+    <div class="nav-label">OPERATIONS</div>
+    """,
+    unsafe_allow_html=True,
+)
+
+nav1, nav2, nav3, nav4, nav5, nav6 = st.columns(
+    [1, 1.15, 0.9, 1.45, 0.95, 0.8]
+)
+
+def nav_button(label, key, value):
+    if st.button(
+        label,
+        key=key,
+        width="stretch",
+        type="primary" if st.session_state.page == value else "secondary",
+    ):
+        st.session_state.page = value
+        st.rerun()
+
+with nav1:
+    nav_button("Overview", "nav_overview", "Overview")
+
+with nav2:
+    nav_button("Live Detection", "nav_live", "Live Detection")
+
+with nav3:
+    nav_button("Alerts", "nav_alerts", "Alerts")
+
+with nav4:
+    nav_button("Model & Evaluation", "nav_model", "Model & Evaluation")
+
+with nav5:
+    nav_button("Evidence", "nav_evidence", "Evidence")
+
+with nav6:
+    nav_button("System", "nav_system", "System")
+
+page = st.session_state.page
+
+settings_left, settings_right = st.columns([2.5, 1])
+
+with settings_left:
     st.markdown(
-        "### SentinelEye"
+        """
+        <div class="settings-shell">
+            <div class="settings-label">DETECTION CONFIDENCE</div>
+        """,
+        unsafe_allow_html=True,
     )
-
-    page = st.radio(
-        "Operations",
-        [
-            "Overview",
-            "Live Detection",
-            "Alerts",
-            "Model & Evaluation",
-            "Evidence",
-            "System",
-        ],
-        label_visibility="collapsed",
-    )
-
-    st.divider()
 
     confidence = st.slider(
         "Detection confidence",
@@ -626,15 +466,24 @@ with st.sidebar:
         max_value=0.90,
         value=DEFAULT_CONF,
         step=0.05,
+        label_visibility="collapsed",
     )
 
-    st.divider()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    st.caption("MODEL")
-    st.write("YOLO11n V2-A")
-    st.write("Classes: Fire / Smoke")
-    st.write("Input: 640 px")
-
+with settings_right:
+    st.markdown(
+        """
+        <div class="settings-shell">
+            <div class="settings-label">ACTIVE MODEL</div>
+            <div class="sidebar-info">
+                <b>YOLO11n V2-A</b><br>
+                Fire / Smoke · 640 px
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # ============================================================
 # OVERVIEW
@@ -643,7 +492,9 @@ with st.sidebar:
 if page == "Overview":
 
     st.markdown(
-        '<div class="section-title">Operations Overview</div>',
+        '<div class="section-title">'
+        'Operations Overview'
+        '</div>',
         unsafe_allow_html=True,
     )
 
@@ -693,7 +544,9 @@ if page == "Overview":
         )
 
     st.markdown(
-        '<div class="section-title">Current Monitoring</div>',
+        '<div class="section-title">'
+        'Current Monitoring'
+        '</div>',
         unsafe_allow_html=True,
     )
 
@@ -710,8 +563,9 @@ if page == "Overview":
                     Live Detection
                 </div>
                 <div class="muted">
-                    Upload an image or use the camera
-                    from the Live Detection section.
+                    Upload an image or use the
+                    camera from the Live Detection
+                    section.
                 </div>
             </div>
             """,
@@ -722,18 +576,21 @@ if page == "Overview":
             st.session_state.last_result
             is not None
         ):
+
             result_data = (
                 st.session_state.last_result
             )
 
             st.image(
                 result_data["image"],
-                use_container_width=True,
+                width="stretch",
             )
 
         else:
+
             st.info(
-                "No detection has been run in this session."
+                "No detection has been run "
+                "in this session."
             )
 
     with right:
@@ -752,18 +609,18 @@ if page == "Overview":
             st.session_state.last_result
             is not None
         ):
+
             latest = (
                 st.session_state.last_result
             )
 
-            status, status_class = (
-                get_status(
-                    latest["fire"],
-                    latest["smoke"],
-                )
+            status, status_class = get_status(
+                latest["fire"],
+                latest["smoke"],
             )
 
             if status_class == "fire":
+
                 st.markdown(
                     f"""
                     <div class="alert-fire">
@@ -778,6 +635,7 @@ if page == "Overview":
                 )
 
             elif status_class == "smoke":
+
                 st.markdown(
                     f"""
                     <div class="alert-smoke">
@@ -790,6 +648,7 @@ if page == "Overview":
                 )
 
             else:
+
                 st.markdown(
                     """
                     <div class="alert-safe">
@@ -816,6 +675,7 @@ if page == "Overview":
             )
 
         else:
+
             st.write(
                 "Waiting for first detection."
             )
@@ -826,7 +686,9 @@ if page == "Overview":
         )
 
     st.markdown(
-        '<div class="section-title">Recent Incidents</div>',
+        '<div class="section-title">'
+        'Recent Incidents'
+        '</div>',
         unsafe_allow_html=True,
     )
 
@@ -837,6 +699,7 @@ if page == "Overview":
         for item in (
             st.session_state.incidents[:10]
         ):
+
             rows.append(
                 {
                     "Time": item["time"],
@@ -844,9 +707,7 @@ if page == "Overview":
                     "Status": item["status"],
                     "Fire": item["fire"],
                     "Smoke": item["smoke"],
-                    "Confidence": item[
-                        "confidence"
-                    ],
+                    "Confidence": item["confidence"],
                     "Inference (ms)": item[
                         "inference_ms"
                     ],
@@ -855,11 +716,12 @@ if page == "Overview":
 
         st.dataframe(
             rows,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
     else:
+
         st.info(
             "No incidents recorded in this session."
         )
@@ -872,13 +734,16 @@ if page == "Overview":
 elif page == "Live Detection":
 
     st.markdown(
-        '<div class="section-title">Live Detection</div>',
+        '<div class="section-title">'
+        'Live Detection'
+        '</div>',
         unsafe_allow_html=True,
     )
 
     st.markdown(
         '<div class="section-note">'
-        'Run the real V2-A model on an image, camera frame, or video.'
+        'Run the V2-A model on an image, '
+        'camera frame, or video.'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -971,9 +836,7 @@ elif page == "Live Detection":
                 inference_ms,
             )
 
-            c1, c2, c3, c4 = (
-                st.columns(4)
-            )
+            c1, c2, c3, c4 = st.columns(4)
 
             with c1:
                 display_kpi(
@@ -1010,7 +873,7 @@ elif page == "Live Detection":
 
             st.image(
                 annotated_rgb,
-                use_container_width=True,
+                width="stretch",
             )
 
             if detections:
@@ -1021,6 +884,7 @@ elif page == "Live Detection":
                     detections,
                     start=1,
                 ):
+
                     x1, y1, x2, y2 = (
                         item["box"]
                     )
@@ -1028,13 +892,9 @@ elif page == "Live Detection":
                     table.append(
                         {
                             "#": index,
-                            "Class": item[
-                                "class"
-                            ],
+                            "Class": item["class"],
                             "Confidence": round(
-                                item[
-                                    "confidence"
-                                ],
+                                item["confidence"],
                                 3,
                             ),
                             "Box": (
@@ -1046,11 +906,12 @@ elif page == "Live Detection":
 
                 st.dataframe(
                     table,
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
             else:
+
                 st.info(
                     "No Fire or Smoke detected "
                     "above the selected confidence."
@@ -1134,9 +995,10 @@ elif page == "Live Detection":
             )
 
             with show1:
+
                 st.image(
                     annotated_rgb,
-                    use_container_width=True,
+                    width="stretch",
                 )
 
             with show2:
@@ -1192,9 +1054,10 @@ elif page == "Live Detection":
                 step=30,
             )
 
-            suffix = Path(
-                uploaded.name
-            ).suffix or ".mp4"
+            suffix = (
+                Path(uploaded.name).suffix
+                or ".mp4"
+            )
 
             with tempfile.NamedTemporaryFile(
                 suffix=suffix,
@@ -1212,6 +1075,7 @@ elif page == "Live Detection":
             )
 
             if not cap.isOpened():
+
                 st.error(
                     "Unable to open this video."
                 )
@@ -1224,28 +1088,15 @@ elif page == "Live Detection":
                     )
                 )
 
-                fps = (
-                    cap.get(
-                        cv2.CAP_PROP_FPS
-                    )
-                    or 25
-                )
-
                 image_slot = st.empty()
                 status_slot = st.empty()
-                progress_slot = st.progress(
-                    0.0
-                )
+                progress_slot = st.progress(0)
 
                 processed = 0
 
-                while (
-                    processed < max_frames
-                ):
+                while processed < max_frames:
 
-                    ok, frame = (
-                        cap.read()
-                    )
+                    ok, frame = cap.read()
 
                     if not ok:
                         break
@@ -1274,14 +1125,12 @@ elif page == "Live Detection":
 
                     image_slot.image(
                         annotated_rgb,
-                        use_container_width=True,
+                        width="stretch",
                     )
 
-                    status, _ = (
-                        get_status(
-                            fire_count,
-                            smoke_count,
-                        )
+                    status, _ = get_status(
+                        fire_count,
+                        smoke_count,
                     )
 
                     status_slot.write(
@@ -1295,15 +1144,17 @@ elif page == "Live Detection":
                     processed += 1
 
                     if total_frames > 0:
+
+                        progress = min(
+                            1.0,
+                            processed / min(
+                                total_frames,
+                                max_frames,
+                            ),
+                        )
+
                         progress_slot.progress(
-                            min(
-                                1.0,
-                                processed
-                                / min(
-                                    total_frames,
-                                    max_frames,
-                                ),
-                            )
+                            progress
                         )
 
                 cap.release()
@@ -1321,14 +1172,17 @@ elif page == "Live Detection":
 elif page == "Alerts":
 
     st.markdown(
-        '<div class="section-title">Alerts & Incident Log</div>',
+        '<div class="section-title">'
+        'Alerts & Incident Log'
+        '</div>',
         unsafe_allow_html=True,
     )
 
     if not st.session_state.incidents:
 
         st.success(
-            "No alerts have been generated in this session."
+            "No alerts have been generated "
+            "in this session."
         )
 
     else:
@@ -1342,13 +1196,13 @@ elif page == "Alerts":
         smoke_count = sum(
             1
             for x in st.session_state.incidents
-            if x["status"]
-            == "SMOKE DETECTED"
+            if x["status"] == "SMOKE DETECTED"
         )
 
         c1, c2, c3 = st.columns(3)
 
         with c1:
+
             display_kpi(
                 "Total incidents",
                 len(
@@ -1357,6 +1211,7 @@ elif page == "Alerts":
             )
 
         with c2:
+
             display_kpi(
                 "Fire alerts",
                 fire_count,
@@ -1364,6 +1219,7 @@ elif page == "Alerts":
             )
 
         with c3:
+
             display_kpi(
                 "Smoke alerts",
                 smoke_count,
@@ -1383,9 +1239,7 @@ elif page == "Alerts":
                     "Status": item["status"],
                     "Fire": item["fire"],
                     "Smoke": item["smoke"],
-                    "Confidence": item[
-                        "confidence"
-                    ],
+                    "Confidence": item["confidence"],
                     "Inference (ms)": item[
                         "inference_ms"
                     ],
@@ -1394,14 +1248,16 @@ elif page == "Alerts":
 
         st.dataframe(
             rows,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
         if st.button(
             "Clear session incident log"
         ):
+
             st.session_state.incidents = []
+
             st.rerun()
 
 
@@ -1412,7 +1268,9 @@ elif page == "Alerts":
 elif page == "Model & Evaluation":
 
     st.markdown(
-        '<div class="section-title">Model & Evaluation</div>',
+        '<div class="section-title">'
+        'Model & Evaluation'
+        '</div>',
         unsafe_allow_html=True,
     )
 
@@ -1431,63 +1289,74 @@ elif page == "Model & Evaluation":
     )
 
     st.markdown(
-        '<div class="section-title">Measured Results</div>',
+        '<div class="section-title">'
+        'Measured Results'
+        '</div>',
         unsafe_allow_html=True,
     )
 
     c1, c2, c3, c4 = st.columns(4)
 
     with c1:
+
         display_kpi(
             "MultiFire precision",
             "71.96%",
         )
 
     with c2:
+
         display_kpi(
             "MultiFire recall",
             "42.26%",
         )
 
     with c3:
+
         display_kpi(
             "MultiFire mAP50",
             "43.16%",
         )
 
     with c4:
+
         display_kpi(
             "MultiFire mAP50-95",
             "27.64%",
         )
 
     st.markdown(
-        '<div class="section-title">Cross-domain image results</div>',
+        '<div class="section-title">'
+        'Cross-domain image results'
+        '</div>',
         unsafe_allow_html=True,
     )
 
     c1, c2, c3 = st.columns(3)
 
     with c1:
+
         display_kpi(
             "Urban fire detection",
             "97.52%",
         )
 
     with c2:
+
         display_kpi(
             "Urban normal fire FAR",
             "0.89%",
         )
 
     with c3:
+
         display_kpi(
             "Any detection on normal",
             "1.28%",
         )
 
     st.info(
-        "These figures are measured V2-A evaluation results. "
+        "These are measured V2-A evaluation results. "
         "Object-level MultiFire metrics and image-level "
         "cross-domain metrics are different measurements."
     )
@@ -1500,7 +1369,9 @@ elif page == "Model & Evaluation":
 elif page == "Evidence":
 
     st.markdown(
-        '<div class="section-title">Evaluation Evidence</div>',
+        '<div class="section-title">'
+        'Evaluation Evidence'
+        '</div>',
         unsafe_allow_html=True,
     )
 
@@ -1536,13 +1407,15 @@ elif page == "Evidence":
         if path.exists():
 
             st.markdown(
-                f'<div class="panel-title">{title}</div>',
+                f'<div class="panel-title">'
+                f'{title}'
+                f'</div>',
                 unsafe_allow_html=True,
             )
 
             st.image(
                 str(path),
-                use_container_width=True,
+                width="stretch",
             )
 
         else:
@@ -1559,13 +1432,16 @@ elif page == "Evidence":
 else:
 
     st.markdown(
-        '<div class="section-title">System Status</div>',
+        '<div class="section-title">'
+        'System Status'
+        '</div>',
         unsafe_allow_html=True,
     )
 
     import platform
 
     try:
+
         import torch
 
         torch_version = (
@@ -1589,25 +1465,30 @@ else:
     c1, c2, c3 = st.columns(3)
 
     with c1:
+
         display_kpi(
             "Python",
             platform.python_version(),
         )
 
     with c2:
+
         display_kpi(
             "PyTorch",
             torch_version,
         )
 
     with c3:
+
         display_kpi(
             "Compute",
             cuda_status,
         )
 
     st.markdown(
-        '<div class="section-title">Model File</div>',
+        '<div class="section-title">'
+        'Model File'
+        '</div>',
         unsafe_allow_html=True,
     )
 
