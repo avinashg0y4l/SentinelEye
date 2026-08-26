@@ -1,12 +1,14 @@
 from pathlib import Path
 import tempfile
 import time
+import subprocess
 
 import cv2
 import numpy as np
 import streamlit as st
 from PIL import Image
 from ultralytics import YOLO
+import imageio_ffmpeg
 
 
 # ============================================================
@@ -423,7 +425,7 @@ def nav_button(label, key, value):
     if st.button(
         label,
         key=key,
-        use_container_width=True,
+        width="stretch",
         type="primary" if st.session_state.page == value else "secondary",
     ):
         st.session_state.page = value
@@ -583,7 +585,7 @@ if page == "Overview":
 
             st.image(
                 result_data["image"],
-                use_container_width=True,
+                width="stretch",
             )
 
         else:
@@ -716,7 +718,7 @@ if page == "Overview":
 
         st.dataframe(
             rows,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
@@ -873,7 +875,7 @@ elif page == "Live Detection":
 
             st.image(
                 annotated_rgb,
-                use_container_width=True,
+                width="stretch",
             )
 
             if detections:
@@ -906,7 +908,7 @@ elif page == "Live Detection":
 
                 st.dataframe(
                     table,
-                    use_container_width=True,
+                    width="stretch",
                     hide_index=True,
                 )
 
@@ -998,7 +1000,7 @@ elif page == "Live Detection":
 
                 st.image(
                     annotated_rgb,
-                    use_container_width=True,
+                    width="stretch",
                 )
 
             with show2:
@@ -1042,6 +1044,7 @@ elif page == "Live Detection":
                 "mov",
                 "mkv",
             ],
+            key="video_upload",
         )
 
         if uploaded:
@@ -1052,7 +1055,14 @@ elif page == "Live Detection":
                 max_value=600,
                 value=180,
                 step=30,
+                key="video_max_frames",
             )
+
+            incident_cooldown = 30
+
+            # ----------------------------------------------------
+            # Save uploaded source video
+            # ----------------------------------------------------
 
             suffix = (
                 Path(uploaded.name).suffix
@@ -1068,10 +1078,10 @@ elif page == "Live Detection":
                     uploaded.getbuffer()
                 )
 
-                video_path = temp.name
+                source_video_path = temp.name
 
             cap = cv2.VideoCapture(
-                video_path
+                source_video_path
             )
 
             if not cap.isOpened():
@@ -1088,13 +1098,101 @@ elif page == "Live Detection":
                     )
                 )
 
-                image_slot = st.empty()
+                fps = (
+                    cap.get(
+                        cv2.CAP_PROP_FPS
+                    )
+                    or 25.0
+                )
+
+                frame_width = int(
+                    cap.get(
+                        cv2.CAP_PROP_FRAME_WIDTH
+                    )
+                )
+
+                frame_height = int(
+                    cap.get(
+                        cv2.CAP_PROP_FRAME_HEIGHT
+                    )
+                )
+
+                if frame_width <= 0:
+                    frame_width = 1280
+
+                if frame_height <= 0:
+                    frame_height = 720
+
+                denominator = min(
+                    total_frames,
+                    max_frames,
+                )
+
+                # ------------------------------------------------
+                # Temporary MJPEG AVI.
+                # We do NOT send this directly to the browser.
+                # It is only an intermediate format.
+                # ------------------------------------------------
+
+                raw_video = tempfile.NamedTemporaryFile(
+                    suffix=".avi",
+                    delete=False,
+                )
+
+                raw_video_path = (
+                    raw_video.name
+                )
+
+                raw_video.close()
+
+                writer = cv2.VideoWriter(
+                    raw_video_path,
+                    cv2.VideoWriter_fourcc(
+                        *"MJPG"
+                    ),
+                    fps,
+                    (
+                        frame_width,
+                        frame_height,
+                    ),
+                )
+
+                if not writer.isOpened():
+
+                    cap.release()
+
+                    st.error(
+                        "Unable to create "
+                        "intermediate video."
+                    )
+
+                    st.stop()
+
+                # ------------------------------------------------
+                # UI
+                # ------------------------------------------------
+
+                preview_slot = st.empty()
                 status_slot = st.empty()
-                progress_slot = st.progress(0)
+                progress_slot = st.progress(
+                    0.0
+                )
 
                 processed = 0
+                last_incident_frame = (
+                    -incident_cooldown
+                )
 
-                while processed < max_frames:
+                best_confidence = 0.0
+                best_frame_image = None
+                best_fire_count = 0
+                best_smoke_count = 0
+                best_inference_ms = 0.0
+                best_frame_number = None
+
+                while (
+                    processed < max_frames
+                ):
 
                     ok, frame = cap.read()
 
@@ -1118,14 +1216,47 @@ elif page == "Live Detection":
                         result,
                     )
 
-                    annotated_rgb = cv2.cvtColor(
-                        annotated,
-                        cv2.COLOR_BGR2RGB,
+                    # Write annotated frame to
+                    # intermediate video.
+                    writer.write(
+                        annotated
                     )
 
-                    image_slot.image(
-                        annotated_rgb,
-                        use_container_width=True,
+                    # ------------------------------------------------
+                    # LIVE PREVIEW
+                    #
+                    # JPEG bytes are intentionally used instead of
+                    # passing the NumPy array directly. This is more
+                    # reliable for a hosted Streamlit frontend.
+                    # ------------------------------------------------
+
+                    preview_ok, preview_buffer = (
+                        cv2.imencode(
+                            ".jpg",
+                            annotated,
+                            [
+                                int(
+                                    cv2.IMWRITE_JPEG_QUALITY
+                                ),
+                                85,
+                            ],
+                        )
+                    )
+
+                    if preview_ok:
+
+                        preview_slot.image(
+                            preview_buffer.tobytes(),
+                            width="stretch",
+                        )
+
+                    current_confidence = (
+                        max(
+                            d["confidence"]
+                            for d in detections
+                        )
+                        if detections
+                        else 0.0
                     )
 
                     status, _ = get_status(
@@ -1133,37 +1264,229 @@ elif page == "Live Detection":
                         smoke_count,
                     )
 
-                    status_slot.write(
-                        f"**{status}**  |  "
-                        f"Fire: **{fire_count}**  |  "
-                        f"Smoke: **{smoke_count}**  |  "
-                        f"Inference: "
-                        f"**{inference_ms:.0f} ms**"
+                    video_time = (
+                        processed / fps
+                        if fps > 0
+                        else 0.0
                     )
+
+                    status_slot.markdown(
+                        f"""
+**{status}**
+
+Frame: **{processed + 1} / {denominator}**  
+Video time: **{video_time:.1f}s**  
+Fire: **{fire_count}** ·
+Smoke: **{smoke_count}** ·
+Confidence: **{current_confidence:.2f}** ·
+Inference: **{inference_ms:.0f} ms**
+"""
+                    )
+
+                    # ------------------------------------------------
+                    # STRONGEST RESULT
+                    # ------------------------------------------------
+
+                    if (
+                        current_confidence
+                        > best_confidence
+                    ):
+
+                        best_confidence = (
+                            current_confidence
+                        )
+
+                        best_frame_image = (
+                            annotated.copy()
+                        )
+
+                        best_fire_count = (
+                            fire_count
+                        )
+
+                        best_smoke_count = (
+                            smoke_count
+                        )
+
+                        best_inference_ms = (
+                            inference_ms
+                        )
+
+                        best_frame_number = (
+                            processed + 1
+                        )
+
+                    # ------------------------------------------------
+                    # INCIDENT LOG
+                    # ------------------------------------------------
+
+                    if (
+                        fire_count > 0
+                        or smoke_count > 0
+                    ):
+
+                        if (
+                            processed
+                            - last_incident_frame
+                            >= incident_cooldown
+                        ):
+
+                            add_incident(
+                                (
+                                    f"{uploaded.name} "
+                                    f"[frame "
+                                    f"{processed + 1}]"
+                                ),
+                                fire_count,
+                                smoke_count,
+                                detections,
+                                inference_ms,
+                            )
+
+                            last_incident_frame = (
+                                processed
+                            )
 
                     processed += 1
 
-                    if total_frames > 0:
-
-                        progress = min(
-                            1.0,
-                            processed / min(
-                                total_frames,
-                                max_frames,
-                            ),
-                        )
+                    if denominator > 0:
 
                         progress_slot.progress(
-                            progress
+                            min(
+                                1.0,
+                                processed
+                                / denominator,
+                            )
                         )
 
                 cap.release()
+                writer.release()
 
-                st.success(
-                    f"Processed {processed} frames "
-                    f"from {uploaded.name}."
+                # ----------------------------------------------------
+                # Convert MJPEG AVI -> browser-compatible H.264 MP4
+                # ----------------------------------------------------
+
+                browser_video = tempfile.NamedTemporaryFile(
+                    suffix=".mp4",
+                    delete=False,
                 )
 
+                browser_video_path = (
+                    browser_video.name
+                )
+
+                browser_video.close()
+
+                ffmpeg_path = (
+                    imageio_ffmpeg.get_ffmpeg_exe()
+                )
+
+                ffmpeg_command = [
+                    ffmpeg_path,
+                    "-y",
+                    "-i",
+                    raw_video_path,
+                    "-c:v",
+                    "libx264",
+                    "-preset",
+                    "veryfast",
+                    "-crf",
+                    "23",
+                    "-pix_fmt",
+                    "yuv420p",
+                    "-movflags",
+                    "+faststart",
+                    "-an",
+                    browser_video_path,
+                ]
+
+                conversion = subprocess.run(
+                    ffmpeg_command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    check=False,
+                )
+
+                if conversion.returncode != 0:
+
+                    st.error(
+                        "Browser video encoding failed."
+                    )
+
+                    with st.expander(
+                        "FFmpeg diagnostic"
+                    ):
+                        st.code(
+                            conversion.stderr[-6000:]
+                        )
+
+                else:
+
+                    # ----------------------------------------------
+                    # Persist strongest result for Overview
+                    # ----------------------------------------------
+
+                    if (
+                        best_frame_image
+                        is not None
+                    ):
+
+                        best_rgb = cv2.cvtColor(
+                            best_frame_image,
+                            cv2.COLOR_BGR2RGB,
+                        )
+
+                        st.session_state.last_result = {
+                            "image": best_rgb,
+                            "fire": best_fire_count,
+                            "smoke": best_smoke_count,
+                            "confidence": (
+                                best_confidence
+                            ),
+                            "inference_ms": (
+                                best_inference_ms
+                            ),
+                            "source": (
+                                f"{uploaded.name} "
+                                f"· best frame "
+                                f"{best_frame_number}"
+                            ),
+                        }
+
+                    # ----------------------------------------------
+                    # Browser video
+                    #
+                    # Pass bytes directly to Streamlit and explicitly
+                    # identify the MIME type.
+                    # ----------------------------------------------
+
+                    with open(
+                        browser_video_path,
+                        "rb",
+                    ) as processed_file:
+
+                        processed_video_bytes = (
+                            processed_file.read()
+                        )
+
+                    st.markdown(
+                        '<div class="section-title">'
+                        'Processed Video'
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
+
+                    st.video(
+                        processed_video_bytes,
+                        format="video/mp4",
+                        subtitles=None,
+                    )
+
+                    st.success(
+                        f"Processed {processed} frames "
+                        f"from {uploaded.name}."
+                    )
 
 # ============================================================
 # ALERTS
@@ -1248,7 +1571,7 @@ elif page == "Alerts":
 
         st.dataframe(
             rows,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
@@ -1415,7 +1738,7 @@ elif page == "Evidence":
 
             st.image(
                 str(path),
-                use_container_width=True,
+                width="stretch",
             )
 
         else:
