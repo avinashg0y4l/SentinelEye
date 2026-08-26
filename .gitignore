@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+SentinelEye-Demo/.venv/
+
+# Data
+data/
+*.zip
+*.tar
+*.gz
+
+# Ultralytics / training artifacts
+runs/
+*.cache
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
+
+# Local demo files
+demo/test.jpg
+
+
+models/baseline_v1_best.pth
