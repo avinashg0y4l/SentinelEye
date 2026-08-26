@@ -423,7 +423,7 @@ def nav_button(label, key, value):
     if st.button(
         label,
         key=key,
-        width="stretch",
+        use_container_width=True,
         type="primary" if st.session_state.page == value else "secondary",
     ):
         st.session_state.page = value
@@ -583,7 +583,7 @@ if page == "Overview":
 
             st.image(
                 result_data["image"],
-                width="stretch",
+                use_container_width=True,
             )
 
         else:
@@ -716,7 +716,7 @@ if page == "Overview":
 
         st.dataframe(
             rows,
-            width="stretch",
+            use_container_width=True,
             hide_index=True,
         )
 
@@ -873,7 +873,7 @@ elif page == "Live Detection":
 
             st.image(
                 annotated_rgb,
-                width="stretch",
+                use_container_width=True,
             )
 
             if detections:
@@ -906,7 +906,7 @@ elif page == "Live Detection":
 
                 st.dataframe(
                     table,
-                    width="stretch",
+                    use_container_width=True,
                     hide_index=True,
                 )
 
@@ -998,7 +998,7 @@ elif page == "Live Detection":
 
                 st.image(
                     annotated_rgb,
-                    width="stretch",
+                    use_container_width=True,
                 )
 
             with show2:
@@ -1042,7 +1042,6 @@ elif page == "Live Detection":
                 "mov",
                 "mkv",
             ],
-            key="video_upload",
         )
 
         if uploaded:
@@ -1053,84 +1052,47 @@ elif page == "Live Detection":
                 max_value=600,
                 value=180,
                 step=30,
-                key="video_max_frames",
             )
 
-            incident_cooldown = 30
-
-            suffix = Path(uploaded.name).suffix or ".mp4"
+            suffix = (
+                Path(uploaded.name).suffix
+                or ".mp4"
+            )
 
             with tempfile.NamedTemporaryFile(
                 suffix=suffix,
                 delete=False,
             ) as temp:
-                temp.write(uploaded.getbuffer())
-                input_video_path = temp.name
 
-            cap = cv2.VideoCapture(input_video_path)
+                temp.write(
+                    uploaded.getbuffer()
+                )
+
+                video_path = temp.name
+
+            cap = cv2.VideoCapture(
+                video_path
+            )
 
             if not cap.isOpened():
-                st.error("Unable to open this video.")
+
+                st.error(
+                    "Unable to open this video."
+                )
+
             else:
 
                 total_frames = int(
-                    cap.get(cv2.CAP_PROP_FRAME_COUNT)
-                )
-
-                fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
-                frame_width = int(
-                    cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-                )
-                frame_height = int(
-                    cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-                )
-
-                if frame_width <= 0 or frame_height <= 0:
-                    frame_width = 1280
-                    frame_height = 720
-
-                # Create an annotated output video.
-                output_file = tempfile.NamedTemporaryFile(
-                    suffix=".mp4",
-                    delete=False,
-                )
-                output_video_path = output_file.name
-                output_file.close()
-
-                fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-
-                writer = cv2.VideoWriter(
-                    output_video_path,
-                    fourcc,
-                    fps,
-                    (frame_width, frame_height),
-                )
-
-                if not writer.isOpened():
-                    cap.release()
-                    st.error(
-                        "Unable to create the processed video."
+                    cap.get(
+                        cv2.CAP_PROP_FRAME_COUNT
                     )
-                    st.stop()
+                )
 
-                preview_slot = st.empty()
+                image_slot = st.empty()
                 status_slot = st.empty()
-                progress_slot = st.progress(0.0)
+                progress_slot = st.progress(0)
 
                 processed = 0
-                last_incident_frame = -incident_cooldown
-
-                best_confidence = 0.0
-                best_frame_image = None
-                best_fire_count = 0
-                best_smoke_count = 0
-                best_inference_ms = 0.0
-                best_frame_number = None
-
-                denominator = min(
-                    total_frames,
-                    max_frames,
-                )
 
                 while processed < max_frames:
 
@@ -1139,9 +1101,11 @@ elif page == "Live Detection":
                     if not ok:
                         break
 
-                    result, inference_ms = run_detection(
-                        frame,
-                        confidence,
+                    result, inference_ms = (
+                        run_detection(
+                            frame,
+                            confidence,
+                        )
                     )
 
                     (
@@ -1154,28 +1118,14 @@ elif page == "Live Detection":
                         result,
                     )
 
-                    writer.write(annotated)
-
                     annotated_rgb = cv2.cvtColor(
                         annotated,
                         cv2.COLOR_BGR2RGB,
                     )
 
-                    current_confidence = (
-                        max(
-                            d["confidence"]
-                            for d in detections
-                        )
-                        if detections
-                        else 0.0
-                    )
-
-                    # Local preview. On hosted Streamlit this may
-                    # update less frequently than local execution,
-                    # but the complete annotated video is preserved.
-                    preview_slot.image(
+                    image_slot.image(
                         annotated_rgb,
-                        width="stretch",
+                        use_container_width=True,
                     )
 
                     status, _ = get_status(
@@ -1183,124 +1133,37 @@ elif page == "Live Detection":
                         smoke_count,
                     )
 
-                    video_time = (
-                        processed / fps
-                        if fps > 0
-                        else 0.0
+                    status_slot.write(
+                        f"**{status}**  |  "
+                        f"Fire: **{fire_count}**  |  "
+                        f"Smoke: **{smoke_count}**  |  "
+                        f"Inference: "
+                        f"**{inference_ms:.0f} ms**"
                     )
-
-                    status_slot.markdown(
-                        f"""
-**{status}**
-
-Frame: **{processed + 1} / {denominator}**  
-Video time: **{video_time:.1f}s**  
-Fire: **{fire_count}** · Smoke: **{smoke_count}**  
-Confidence: **{current_confidence:.2f}** ·
-Inference: **{inference_ms:.0f} ms**
-"""
-                    )
-
-                    # Keep strongest detection for Overview.
-                    if current_confidence > best_confidence:
-                        best_confidence = current_confidence
-                        best_frame_image = annotated_rgb.copy()
-                        best_fire_count = fire_count
-                        best_smoke_count = smoke_count
-                        best_inference_ms = inference_ms
-                        best_frame_number = processed + 1
-
-                    # Log an incident, but not every frame.
-                    if (
-                        fire_count > 0
-                        or smoke_count > 0
-                    ) and (
-                        processed - last_incident_frame
-                        >= incident_cooldown
-                    ):
-
-                        add_incident(
-                            f"{uploaded.name} "
-                            f"[frame {processed + 1}]",
-                            fire_count,
-                            smoke_count,
-                            detections,
-                            inference_ms,
-                        )
-
-                        last_incident_frame = processed
 
                     processed += 1
 
-                    if denominator > 0:
+                    if total_frames > 0:
+
+                        progress = min(
+                            1.0,
+                            processed / min(
+                                total_frames,
+                                max_frames,
+                            ),
+                        )
+
                         progress_slot.progress(
-                            min(
-                                1.0,
-                                processed / denominator,
-                            )
+                            progress
                         )
 
                 cap.release()
-                writer.release()
-
-                # Save the strongest processed frame into
-                # Overview -> Current Monitoring.
-                if best_frame_image is not None:
-                    st.session_state.last_result = {
-                        "image": best_frame_image,
-                        "fire": best_fire_count,
-                        "smoke": best_smoke_count,
-                        "confidence": best_confidence,
-                        "inference_ms": best_inference_ms,
-                        "source": (
-                            f"{uploaded.name} "
-                            f"· best frame {best_frame_number}"
-                        ),
-                    }
-                else:
-                    # Even when there are no detections, keep a
-                    # valid latest frame for the Overview page.
-                    try:
-                        cap_preview = cv2.VideoCapture(
-                            output_video_path
-                        )
-                        ok_preview, preview_frame = (
-                            cap_preview.read()
-                        )
-                        cap_preview.release()
-
-                        if ok_preview:
-                            preview_rgb = cv2.cvtColor(
-                                preview_frame,
-                                cv2.COLOR_BGR2RGB,
-                            )
-
-                            st.session_state.last_result = {
-                                "image": preview_rgb,
-                                "fire": 0,
-                                "smoke": 0,
-                                "confidence": 0.0,
-                                "inference_ms": 0.0,
-                                "source": uploaded.name,
-                            }
-                    except Exception:
-                        pass
-
-                st.markdown(
-                    '<div class="section-title">'
-                    'Processed Video'
-                    '</div>',
-                    unsafe_allow_html=True,
-                )
-
-                st.video(
-                    output_video_path,
-                )
 
                 st.success(
                     f"Processed {processed} frames "
                     f"from {uploaded.name}."
                 )
+
 
 # ============================================================
 # ALERTS
@@ -1385,7 +1248,7 @@ elif page == "Alerts":
 
         st.dataframe(
             rows,
-            width="stretch",
+            use_container_width=True,
             hide_index=True,
         )
 
@@ -1552,7 +1415,7 @@ elif page == "Evidence":
 
             st.image(
                 str(path),
-                width="stretch",
+                use_container_width=True,
             )
 
         else:
