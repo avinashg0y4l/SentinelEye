@@ -163,6 +163,8 @@ The image-level detection results and object-level localization metrics measure 
 
 SentinelEye includes a Streamlit-based operations dashboard.
 
+![SentinelEye Dashboard](img/Dashboard.png)
+
 ### Current dashboard sections
 
 - Operations Overview
