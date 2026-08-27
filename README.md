@@ -189,9 +189,7 @@ Public working application:
 https://sentineleye-avinash.streamlit.app
 
 ### ELCIA Demonstration Video
-
-https://www.youtube.com/watch?v=gk-8vqSjHsM
-
+https://drive.google.com/file/d/1YufiUMFtObRjGPpVgrLMF1xrjyxyVBqY/view?usp=drive_link
 ---
 
 ## 9. Testing Video
@@ -303,7 +301,7 @@ activate the virtual environment:
 Then:
 
 ```powershell
-python -m streamlit run .pp\sentineleye_demo.py
+python -m streamlit run .app\sentineleye_demo.py
 ```
 
 Open:
