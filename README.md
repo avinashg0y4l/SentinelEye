@@ -13,6 +13,7 @@ The system combines a YOLO11n object detector with an operations-oriented dashbo
 Early detection of fire from aerial and urban imagery can support faster situational awareness and incident response.
 
 SentinelEye is designed to:
+
 - detect visible Fire and Smoke regions,
 - display bounding boxes and confidence scores,
 - provide an operator-oriented monitoring interface,
@@ -90,13 +91,19 @@ D-Fire provides Fire and Smoke object-detection annotations in YOLO format.
 
 The project uses D-Fire for detector training and validation.
 
+**Source:**  
+https://github.com/gaia-solutions-on-demand/DFireDataset
+
 ### MultiFire20K
 
 MultiFire20K is a UAV-based fire monitoring dataset containing urban and rural fire imagery.
 
-For the current V2-A experiment, the project used manual fire annotations from the official training split and a held-out urban-fire evaluation set.
+For the current V2-A experiment, the project used manual Fire annotations from the official training split and a held-out urban-fire evaluation set.
 
 > MultiFire manual supervision used in this experiment provides Fire annotations. Therefore Smoke performance should not be interpreted as fully validated against MultiFire Fire-only ground truth.
+
+**Source:**  
+https://zenodo.org/records/17047113
 
 ---
 
@@ -123,8 +130,8 @@ The final submission model is the V2-A checkpoint.
 
 ### MultiFire Urban Fire Object Evaluation
 
-- Images: 1,010
-- Ground-truth Fire boxes: 2,572
+- Images: **1,010**
+- Ground-truth Fire boxes: **2,572**
 
 | Metric | Result |
 |---|---:|
@@ -137,13 +144,13 @@ The final submission model is the V2-A checkpoint.
 
 #### Urban Fire
 
-- Images: 1,010
+- Images: **1,010**
 - Fire detection rate: **97.52%**
 - Any detection rate: **98.42%**
 
 #### Urban Normal
 
-- Images: 1,014
+- Images: **1,014**
 - Fire false-alarm rate: **0.89%**
 - Smoke false-alarm rate: **0.39%**
 - Any detection rate: **1.28%**
@@ -175,9 +182,77 @@ Video
 
 The interface is designed as an internal operations console rather than a consumer-facing application.
 
+### Dashboard
+
+Public working application:
+
+https://sentineleye-avinash.streamlit.app
+
+### ELCIA Demonstration Video
+
+https://www.youtube.com/watch?v=gk-8vqSjHsM
+
 ---
 
-## 9. Known Limitations
+## 9. Testing Video
+
+A sample test video can be used to verify the SentinelEye video-inference pipeline.
+
+### How to test
+
+Open the SentinelEye dashboard:
+
+```text
+Live Detection
+        ↓
+Video
+        ↓
+Upload the test video
+```
+
+The video can be used to test:
+
+- frame-by-frame Fire/Smoke inference
+- bounding-box visualization
+- confidence scoring
+- incident logging
+- processed-video generation
+
+### Test video
+
+**Testing video:**
+
+The demonstration video used for the ELCIA submission is available here:
+
+https://www.youtube.com/watch?v=gk-8vqSjHsM
+
+For independent functional testing, use a separate sample input video and upload it through:
+
+```text
+Live Detection
+        ↓
+Video
+        ↓
+Upload the test video
+```
+
+For independent testing, the Google Drive file should be shared as:
+
+```text
+General access → Anyone with the link
+Role → Viewer
+```
+
+For independent testing, the Google Drive file should be shared as:
+
+```text
+General access → Anyone with the link
+Role → Viewer
+```
+
+---
+
+## 10. Known Limitations
 
 ### Localization
 
@@ -191,9 +266,15 @@ Large smoke plumes can make precise localization difficult.
 
 The MultiFire manual training/evaluation data used in this experiment provides Fire supervision, so Smoke performance must not be interpreted as a fully validated MultiFire Smoke result.
 
+### Real-world smoke context
+
+The current visual detector does not yet reliably distinguish hazardous fire-related smoke from normal industrial emissions such as brick-kiln or factory-chimney exhaust, construction dust, steam, or other smoke-like sources.
+
+This is a known prototype limitation and is a focus for future contextual risk analysis.
+
 ---
 
-## 10. How to Run Locally
+## 11. How to Run Locally
 
 ### Requirements
 
@@ -231,14 +312,28 @@ Open:
 http://localhost:8501
 ```
 
+### Dependency installation
+
+From the repository root:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
 ---
 
-## 11. Evidence
+## 12. Evidence
 
 Curated submission evidence is stored in:
 
 ```text
 results/submission/visual_cases/
+```
+
+Additional dashboard evidence is stored in:
+
+```text
+SentinelEye-Demo/evidence/
 ```
 
 The evidence includes:
@@ -249,18 +344,27 @@ The evidence includes:
 
 ---
 
-## 12. Future Scope
+## 13. Future Scope
+
+The current prototype is intentionally focused on the detection and operations layer.
 
 Future development can include:
 
 - improved Fire localization,
 - stronger Smoke supervision,
-- sequence-aware evaluation across more sources,
-- drone telemetry integration,
+- classification of different smoke sources,
+- temporal analysis across consecutive video frames,
+- risk scoring and Low/Medium/High/Critical incident classification,
 - geospatial incident mapping,
-- long-running alert management,
-- centralized multi-camera monitoring,
+- persistent incident management,
+- drone GPS and telemetry integration,
+- centralized multi-drone monitoring,
+- cross-drone incident verification,
+- thermal and environmental sensor fusion,
+- configurable authority escalation,
+- site-specific industrial-emission baselines,
 - deployment on edge hardware,
+- continuous model retraining using additional real-world data,
 - integration with operational command systems.
 
 These features are future scope unless explicitly demonstrated in the current build.
@@ -280,6 +384,7 @@ These features are future scope unless explicitly demonstrated in the current bu
 - Camera inference
 - Video inference
 - Operations dashboard
+- Session-based incident logging
 - Evaluation evidence
 
 ### Measured
@@ -296,6 +401,8 @@ These features are future scope unless explicitly demonstrated in the current bu
 - Production emergency dispatch
 - Large-scale cloud orchestration
 - Fully autonomous emergency response
+- Automatic authority contact based only on a Smoke/Fire prediction
+- Production-grade multi-drone coordination
 
 ---
 
@@ -313,6 +420,9 @@ https://github.com/avinashg0y4l/SentinelEye
 SentinelEye V2-A
 YOLO11n
 Classes: Smoke, Fire
+Input size: 640 × 640
 ```
 
-SentinelEye is currently a working research/prototype system focused on measurable UAV-based fire and smoke detection.
+SentinelEye is currently a working research/prototype system focused on measurable UAV-based Fire and Smoke detection.
+
+The project is structured to provide a clear path from visual detection toward a future contextual, risk-aware and multi-drone smart-city monitoring platform.
